@@ -1,0 +1,18 @@
+{
+  "generated_at": "2026-07-16T19:10:39.324051+00:00",
+  "chunk_count": 73,
+  "documents": [
+    {
+      "document_id": "partex-star-employee-handbook",
+      "file": "Partex-Star-Group.pdf",
+      "sha256": "114a5c6134eafcdf74cc30601e89f2343d27f7c59ff327ac1b9d130c21b38cd9",
+      "scope": "Full printed pages 1-10"
+    },
+    {
+      "document_id": "bangladesh-labour-act-handbook",
+      "file": "A Handbook on the Bangladesh Labour Act 2006.pdf",
+      "sha256": "de7db47bffe9eacb73dddab58082835746f88cb95687a89a8dd91f73234cf9fd",
+      "scope": "Chapter II printed pages 25-32 and Chapter IX printed pages 56-60"
+    }
+  ]
+}

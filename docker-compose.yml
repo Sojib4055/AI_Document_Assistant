@@ -1,0 +1,12 @@
+services:
+  app:
+    build: .
+    ports:
+      - "8000:8000"
+    volumes:
+      - chroma_data:/app/data/chroma
+      - ./gcp-credentials.json:/app/gcp-credentials.json:ro
+    restart: unless-stopped
+
+volumes:
+  chroma_data:
