@@ -1,192 +1,188 @@
----
-title: Enterprise AI Document Assistant
-emoji: 📚
-colorFrom: red
-colorTo: gray
-sdk: docker
-app_port: 8000
-pinned: false
----
-
 # Enterprise AI Document Assistant
 
-A retrieval-augmented document assistant built for the AgamiSoft AI Solutions Engineer technical assessment. The application answers employee questions from the supplied documents, returns the supporting source and printed page, and refuses questions that are not supported by the indexed material.
+A document-grounded assistant built for the AgamiSoft AI Solutions Engineer assessment. It answers employee policy questions from the supplied handbooks, identifies the source document used for each answer, and declines questions that are outside the indexed material.
 
-The repository is structured as a small production-style service rather than a single notebook. Document ingestion, retrieval, answer generation, API contracts and the browser interface are separate components.
+## Links
 
-## Assessment scope
+- **Live application:** https://ai-document-assistant-fa4b.onrender.com
+- **GitHub repository:** https://github.com/Sojib4055/AI_Document_Assistant
+- **API documentation:** https://ai-document-assistant-fa4b.onrender.com/docs
 
-The assessment brief describes a generic multi-document scenario. The files supplied for this implementation are:
+The Render service uses a free instance and may take about a minute to start after a period of inactivity.
 
-- The complete Partex Star Group Employee Handbook, printed pages 1-10
-- *A Handbook on the Bangladesh Labour Act, 2006*
-  - Chapter II, printed pages 25-32: Conditions of Service and Employment
-  - Chapter IX, printed pages 56-60: Working Hours and Leave
+## Document scope
 
-Only these documents and page ranges are searchable.
+The searchable knowledge base is intentionally limited to:
 
-## Main capabilities
+- The complete **Partex-Star Group Employee Handbook** (printed pages 1–10)
+- **Chapter II — Conditions of Service and Employment** (printed pages 25–32) from *A Handbook on the Bangladesh Labour Act, 2006*
+- **Chapter IX — Working Hours and Leave** (printed pages 56–60) from the same Labour Act handbook
 
-- Text extraction from the Partex handbook
-- OCR path for the scanned Labour Act handbook
-- Correct handling of printed page numbers and physical PDF page numbers
-- Section-aware and clause-aware chunks with metadata
-- Chroma vector retrieval combined with an in-memory BM25 index
-- Reciprocal rank fusion for hybrid retrieval
-- Strict document grounding and unsupported-question refusal
-- Backend-controlled citations
-- Separate treatment of company policy and legal handbook provisions
-- FastAPI endpoints with Pydantic request and response models
-- React interface with source cards and links to the original PDF page
-- Automated ingestion, retrieval, API and refusal tests
-- Docker image that builds and serves the frontend and backend together
+AgamiSoft internal documents are not included. The Labour Act handbook is used as an assessment reference and the application does not provide legal advice.
+
+## What the application does
+
+- Extracts text from the Partex handbook and uses OCR for scanned Labour Act pages
+- Splits the selected content into section-aware chunks with document and page metadata
+- Uses Vertex AI embeddings and ChromaDB for semantic retrieval
+- Uses BM25 alongside vector search to retain strong keyword and section-title matching
+- Combines both result lists with reciprocal rank fusion
+- Checks whether the retrieved evidence is strong enough before generating an answer
+- Uses Gemini to produce short answers from retrieved evidence only
+- Keeps company policy and Labour Act handbook provisions as separate authorities
+- Returns server-validated source document names instead of model-created citations
+- Handles simple greetings without making an unnecessary model request
+- Provides health checks, automated tests and a Docker deployment
 
 ## Architecture
 
-### Runtime flow
+```mermaid
+flowchart LR
+    Browser[React interface] -->|POST /api/v1/query| API[FastAPI]
+    API --> Social{Greeting?}
+    Social -->|Yes| Reply[Local conversational reply]
+    Social -->|No| Retrieval[Hybrid retrieval]
+    Retrieval --> Dense[Vertex embedding + ChromaDB]
+    Retrieval --> Sparse[BM25]
+    Dense --> Fusion[Reciprocal rank fusion]
+    Sparse --> Fusion
+    Fusion --> Gate[Answerability gate]
+    Gate --> Generator[Gemini 2.5 Flash]
+    Generator --> Citations[Validate source IDs]
+    Citations --> API
 
-1. The browser sends a question to `POST /api/v1/query`.
-2. The backend creates a dense query embedding and runs Chroma search.
-3. The same question is searched through BM25.
-4. Reciprocal rank fusion combines both rankings.
-5. An answerability gate checks query coverage and evidence overlap.
-6. The generator receives only the selected chunks, each labelled `S1`, `S2` and so on.
-7. The backend validates the returned source labels and resolves them to document and page metadata.
+    PDFs[Reference PDFs] --> Ingestion[Text extraction and OCR]
+    Ingestion --> Chunks[Section-aware chunks]
+    Chunks --> Dense
+    Chunks --> Sparse
+```
 
-### Ingestion flow
+### Request flow
 
-1. Map physical PDF pages to printed pages.
-2. Extract embedded text where available.
-3. Use cached OCR text or Tesseract when no usable text layer exists.
-4. Split the text by handbook heading or legal section.
-5. Save normalized chunks to `data/processed/chunks.jsonl`.
-6. Build or refresh the Chroma index when the corpus or embedding provider changes.
+1. The browser submits a question to FastAPI.
+2. Simple social messages such as `hello` are answered locally.
+3. Document questions are searched through ChromaDB and BM25.
+4. Reciprocal rank fusion combines the semantic and keyword rankings.
+5. The answerability gate rejects weak or unrelated matches.
+6. Gemini receives only the selected document chunks.
+7. The API validates Gemini's source IDs against server-side metadata before returning the answer.
 
-## Important page mapping
+## Models and main libraries
 
-The citation requirement is based on the page printed inside the source, not only the page shown by a PDF viewer.
-
-### Partex handbook
-
-| Physical PDF page | Printed pages |
+| Component | Purpose |
 |---|---|
-| 2 | 1 and 2 |
-| 3 | 3 and 4 |
-| 4 | 5 and 6 |
-| 5 | 7 and 8 |
-| 6 | 9 and 10 |
+| Gemini 2.5 Flash | Grounded answer generation |
+| Gemini Embedding 001 | Document and query embeddings |
+| Google Gen AI SDK | Vertex AI model access |
+| ChromaDB | Vector storage and semantic search |
+| BM25 | Keyword retrieval |
+| FastAPI and Uvicorn | Backend API and web server |
+| PyMuPDF | PDF text and page extraction |
+| Tesseract OCR | Text extraction from scanned pages |
+| React, TypeScript and Vite | Browser interface and production frontend build |
+| Pydantic | Configuration and API validation |
+| Pytest | Automated backend tests |
 
-The ingestion loader splits every landscape spread before extracting text. For example, Partex working hours are cited as printed page 5 even though they are on physical PDF page 4.
+## Page-number handling
 
-### Labour Act handbook
+Printed page numbers do not always match physical PDF page numbers. Both are stored in chunk metadata so retrieval can use the correct document section.
 
-| Assigned printed pages | Physical PDF pages |
-|---|---|
-| 25-32 | 42-49 |
-| 56-60 | 73-77 |
+| Document | Printed pages | Physical PDF pages |
+|---|---:|---:|
+| Partex-Star Group Employee Handbook | 1–10 | 2–6 |
+| Labour Act handbook, Chapter II | 25–32 | 42–49 |
+| Labour Act handbook, Chapter IX | 56–60 | 73–77 |
 
-Both values are stored in metadata. The UI displays the printed page and uses the physical page when opening the PDF.
+The Partex PDF contains two printed pages on each landscape PDF page. Its ingestion loader separates these pages before creating chunks.
 
-## Quick start with Docker
+## Run with Docker
 
-Docker is the simplest way to run the complete application because the image includes Tesseract.
+### Requirements
 
-```bash
-cp .env.example .env
+- Docker Desktop
+- A Google Cloud project with Vertex AI enabled
+- A service account with permission to use Vertex AI
+- A valid service-account JSON key
+
+Save the service-account key as `gcp-credentials.json` in the repository root. The filename is excluded by both `.gitignore` and `.dockerignore` and must never be committed.
+
+Build and start the application:
+
+```powershell
 docker compose up --build
 ```
 
 Open:
 
-- Application: `http://localhost:8000`
-- OpenAPI documentation: `http://localhost:8000/docs`
-- Liveness: `http://localhost:8000/health/live`
-- Readiness: `http://localhost:8000/api/v1/health/ready`
+- Application: http://localhost:8000
+- OpenAPI documentation: http://localhost:8000/docs
+- Liveness check: http://localhost:8000/health/live
+- Readiness check: http://localhost:8000/api/v1/health/ready
 
-The application works without an API key by using the deterministic hash embedder and extractive answer fallback. For submission-quality answers, configure OpenAI as described below.
+Stop the application with `Ctrl+C`, then remove the containers with:
 
-## OpenAI configuration
-
-Edit `.env`:
-
-```env
-OPENAI_API_KEY=your_key_here
-EMBEDDING_PROVIDER=openai
-LLM_PROVIDER=openai
-OPENAI_CHAT_MODEL=gpt-4o-mini
-OPENAI_EMBEDDING_MODEL=text-embedding-3-small
+```powershell
+docker compose down
 ```
-
-`auto` is also supported for both provider settings. When a key exists, `auto` selects OpenAI. Without a key, it selects the local fallback.
-
-The model names are configuration values so they can be changed without modifying application code.
 
 ## Local development
 
-### System requirements
+Recommended versions:
 
-- Python 3.12 recommended
-- Node.js 22 recommended
-- Tesseract 5 only when regenerating OCR from the scanned PDF
+- Python 3.12
+- Node.js 22
+- Tesseract 5 when regenerating OCR
 
-### Backend
-
-```bash
-python -m venv .venv
-source .venv/bin/activate
-pip install -r backend/requirements-dev.txt
-cp .env.example .env
-PYTHONPATH=backend python backend/scripts/ingest.py --rebuild
-PYTHONPATH=backend uvicorn app.main:app --reload --port 8000
-```
-
-On Windows PowerShell:
+Create and activate the Python environment on Windows PowerShell:
 
 ```powershell
 python -m venv .venv
-.venv\Scripts\Activate.ps1
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy RemoteSigned
+.\.venv\Scripts\Activate.ps1
 pip install -r backend\requirements-dev.txt
+```
+
+Copy the example configuration and update the credential path if the JSON file is not in the repository root:
+
+```powershell
 Copy-Item .env.example .env
+```
+
+Start the backend from the repository root:
+
+```powershell
 $env:PYTHONPATH = "backend"
-python backend\scripts\ingest.py --rebuild
 uvicorn app.main:app --reload --port 8000
 ```
 
-### Frontend
+Start the frontend in another terminal:
 
-In another terminal:
-
-```bash
+```powershell
 cd frontend
 npm install
 npm run dev
 ```
 
-The Vite development server proxies `/api` and `/health` to port 8000.
+The Vite development server is available at http://localhost:5173 and proxies API requests to the backend.
 
-## Corpus regeneration
+## Corpus ingestion
 
-A normalized corpus and OCR cache are included so the project starts quickly. To rebuild the chunks from the source PDFs:
+Processed chunks and cached OCR text are included in the repository. To regenerate the corpus:
 
-```bash
-PYTHONPATH=backend python backend/scripts/ingest.py --rebuild
+```powershell
+$env:PYTHONPATH = "backend"
+python backend\scripts\ingest.py --rebuild
 ```
 
-To ignore the OCR cache and run Tesseract again:
+To rerun Tesseract instead of using the OCR cache:
 
-```bash
-PYTHONPATH=backend python backend/scripts/ingest.py --rebuild --force-ocr
+```powershell
+python backend\scripts\ingest.py --rebuild --force-ocr
 ```
 
-The script writes:
+The ingestion process writes normalized chunks to `data/processed/chunks.jsonl`. The Chroma index is generated at startup and is not committed.
 
-- `data/processed/chunks.jsonl`
-- `data/processed/manifest.json`
-- `data/processed/ocr/page_*.txt`
-
-The Chroma index is not committed. It is generated from `chunks.jsonl` on application startup and persisted under `data/chroma`.
-
-## API contracts
+## API
 
 ### Ask a question
 
@@ -194,7 +190,7 @@ The Chroma index is not committed. It is generated from `chunks.jsonl` on applic
 
 ```json
 {
-  "question": "What happens if I am sick for more than seven days?"
+  "question": "What are the working hours on Saturday?"
 }
 ```
 
@@ -203,15 +199,15 @@ Example response:
 ```json
 {
   "answerable": true,
-  "answer": "A fitness certificate is required for prolonged sick leave of more than seven days.",
+  "answer": "The Saturday working hours are 9:00 a.m. to 1:30 p.m.",
   "sources": [
     {
       "id": "S1",
       "document_id": "partex-star-employee-handbook",
       "document": "Partex Star Group Employee Handbook",
-      "printed_page": 6,
+      "printed_page": 5,
       "pdf_page": 4,
-      "section": "B. Leave - 2. Sick Leave",
+      "section": "A. Code of Conduct - 1. Working Days and Hours",
       "snippet": "...",
       "source_category": "company_policy"
     }
@@ -220,109 +216,99 @@ Example response:
 }
 ```
 
-### List indexed documents
+Other endpoints:
 
-`GET /api/v1/documents`
+- `GET /api/v1/documents` — indexed document summary
+- `GET /health/live` — process health
+- `GET /api/v1/health/ready` — document index readiness
 
-### Open a source PDF
+## Grounding behavior
 
-`GET /api/v1/documents/{document_id}/file`
+Retrieved chunks are labelled internally as `S1`, `S2` and so on. Gemini may select from those labels, but it cannot supply trusted document metadata directly. The backend resolves valid labels to known documents and discards unknown labels. A generated answer without a valid supporting source is rejected.
 
-### Health checks
+For questions that are not supported by the indexed material, the assistant returns:
 
-- `GET /health/live`
-- `GET /api/v1/health/ready`
+> I couldn't find information about that in the provided documents. Please ask a question related to the available employee policy documents.
 
-## Grounding and citation rules
+## Tests
 
-The generator is not allowed to create a page number or document name. Retrieved chunks are labelled `S1`, `S2` and so on. The model may return those labels, but the API resolves the labels against server-side metadata. Unknown labels are discarded. An answer without a valid source is converted to the standard refusal response.
+Run the backend suite from the repository root:
 
-The grounding prompt also requires separate labels when company policy and the Labour Act handbook both apply. This prevents a company benefit from being incorrectly presented as the statutory rule, or the reverse.
-
-The refusal text is:
-
-> I don't have sufficient information in the provided documents to answer this question.
-
-## Testing
-
-Run the automated suite:
-
-```bash
-PYTHONPATH=backend pytest backend/tests -q
+```powershell
+$env:PYTHONPATH = "backend"
+python -m pytest backend\tests -q
 ```
 
-The tests cover:
+The suite currently contains 15 tests covering:
 
-- Printed page and physical page mapping
-- Important numeric entitlement extraction
-- Retrieval of the expected clause
-- Source metadata in the final response
-- Out-of-scope refusal
-- Request validation and API response shape
+- PDF and printed-page mapping
+- Corpus ingestion output
+- Hybrid retrieval of relevant sections
+- Source metadata in responses
+- Unsupported-question handling
+- Greeting handling
+- API validation and response contracts
 
-Run the small retrieval evaluation:
+Build the production frontend with:
 
-```bash
-PYTHONPATH=backend python backend/scripts/evaluate.py
-```
-
-Detailed results are written to `evaluation/results.json`. The evaluation checks expected document, section and page retrieval within the top five results as well as refusal behaviour.
-
-## Project structure
-
-```text
-.
-├── backend
-│   ├── app
-│   │   ├── api
-│   │   ├── ingestion
-│   │   ├── models
-│   │   ├── services
-│   │   └── main.py
-│   ├── scripts
-│   └── tests
-├── data
-│   ├── source
-│   ├── processed
-│   └── chroma
-├── docs
-├── evaluation
-├── frontend
-├── Dockerfile
-└── docker-compose.yml
+```powershell
+cd frontend
+npm run build
 ```
 
 ## Deployment
 
-The root Dockerfile uses a two-stage build:
+The application is deployed as one Docker web service on Render. The Dockerfile uses a two-stage build: Node builds the React frontend, then the Python image serves the compiled frontend and FastAPI backend on port `8000`.
 
-1. Node builds the Vite frontend.
-2. Python installs the backend and Tesseract, then serves the frontend through FastAPI.
+Render receives the GCP service-account JSON through the `GCP_CREDENTIALS_JSON` environment variable. The credential file is not part of the image or Git repository.
 
-This can be deployed as one web service on a container platform. Set the start command from the Dockerfile and provide the environment variables in the platform dashboard. Attach a persistent disk to `/app/data/chroma` when available. Without a persistent disk, the small index can be rebuilt at startup.
+Required Render environment variables:
 
-## Business value
+```text
+GCP_CREDENTIALS_JSON=<complete service-account JSON>
+APP_ENV=production
+GCP_LOCATION=us-central1
+LLM_PROVIDER=vertex
+EMBEDDING_PROVIDER=vertex
+MODEL_NAME=gemini-2.5-flash
+VERTEX_EMBEDDING_MODEL=gemini-embedding-001
+```
 
-The assistant is designed for employee self-service rather than open-ended conversation. It reduces repeated HR questions, gives employees a traceable source, and makes policy differences visible. Refusal behaviour is important because an unsupported but confident answer can create more HR work and can be risky when employment rules are involved.
+Health check path:
+
+```text
+/health/live
+```
+
+Pushing a commit to the `main` branch triggers a new Render deployment when auto-deploy is enabled.
+
+## Project structure
+
+```text
+backend/
+  app/
+    api/          API routes
+    ingestion/    PDF extraction, OCR and chunking
+    models/       Request, response and document models
+    services/     Retrieval, embeddings, generation and vector storage
+  scripts/        Ingestion and evaluation commands
+  tests/          Automated backend tests
+data/
+  source/         Supplied reference PDFs
+  processed/      Normalized chunks and OCR cache
+frontend/
+  src/            React application
+Dockerfile        Production image
+docker-compose.yml
+```
 
 ## Assumptions and limitations
 
-- The searchable corpus is limited to the supplied files and assigned legal pages.
-- The Labour Act file is a handbook and English translation supplied for the assessment. The application does not claim that it contains every later amendment or replaces the authoritative legal text.
-- OCR is deterministic but not perfect. Key numbers and section headings in the assigned pages should be reviewed when replacing the source PDF.
-- Authentication and role-based access are outside this assessment scope.
-- Conversation history is kept in the browser and is not persisted.
-- The local hash embedding and extractive generator are operational fallbacks. OpenAI mode is recommended for the final demonstration.
-
-## Technical discussion notes
-
-A reviewer may ask about the following choices:
-
-- Why printed page mapping is separate from physical PDF page mapping
-- Why OCR is page-level rather than document-level
-- Why BM25 is retained beside dense retrieval
-- How rank fusion works
-- How the refusal gate behaves
-- Why citations are resolved after generation
-- How policy and legal sources are kept separate
-- How the index is rebuilt when documents or embedding models change
+- Answers are limited to the supplied documents and selected Labour Act handbook chapters.
+- The Labour Act source is an assessment handbook, not a substitute for the authoritative law or legal advice.
+- OCR output can contain recognition errors when source scans are unclear.
+- The assistant does not search the internet or use information outside the indexed corpus.
+- Conversation history is stored only in the browser and is lost when the page is refreshed.
+- Authentication and role-based access are not included; test credentials are therefore not applicable.
+- Render's free instance sleeps after inactivity and uses an ephemeral filesystem. A cold start may rebuild the vector index and take additional time.
+- Vertex AI usage is billed separately by Google Cloud.
