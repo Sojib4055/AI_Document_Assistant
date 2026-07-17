@@ -85,7 +85,7 @@ function App() {
         </div>
         <div className="status-pill">
           <span className="status-dot" />
-          Grounded document search
+          Vertex AI · Grounded answers
         </div>
       </header>
 
@@ -147,12 +147,16 @@ function App() {
 
           <div className="question-area">
             {messages.length === 1 && (
-              <div className="sample-questions">
-                {SAMPLE_QUESTIONS.map((sample) => (
-                  <button key={sample} type="button" onClick={() => void submitQuestion(sample)}>
-                    {sample}
-                  </button>
-                ))}
+              <div className="suggestion-area">
+                <span className="suggestion-label">Suggested questions</span>
+                <div className="sample-questions">
+                  {SAMPLE_QUESTIONS.map((sample) => (
+                    <button key={sample} type="button" onClick={() => void submitQuestion(sample)}>
+                      <span>{sample}</span>
+                      <span aria-hidden="true">→</span>
+                    </button>
+                  ))}
+                </div>
               </div>
             )}
 
@@ -175,10 +179,14 @@ function App() {
                 }}
               />
               <button type="submit" disabled={loading || question.trim().length < 1}>
-                Ask question
+                <span>{loading ? 'Searching' : 'Ask question'}</span>
+                {!loading && <span aria-hidden="true">→</span>}
               </button>
             </form>
-            <p className="form-note">Say hello or ask about the available employee policy documents.</p>
+            <div className="form-meta">
+              <p className="form-note">Say hello or ask about the available employee policy documents.</p>
+              <span className="keyboard-hint">Enter to send · Shift + Enter for a new line</span>
+            </div>
           </div>
         </section>
       </main>

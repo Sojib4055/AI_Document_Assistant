@@ -15,7 +15,8 @@ body {
   min-width: 320px;
   min-height: 100vh;
   background:
-    radial-gradient(circle at 8% 0%, rgba(189, 31, 42, 0.08), transparent 28rem),
+    radial-gradient(circle at 8% 0%, rgba(189, 31, 42, 0.09), transparent 30rem),
+    radial-gradient(circle at 92% 100%, rgba(38, 41, 47, 0.05), transparent 28rem),
     #f4f5f7;
 }
 
@@ -39,7 +40,7 @@ button {
   min-height: 88px;
   padding: 1rem clamp(1rem, 4vw, 3.5rem);
   color: #fff;
-  background: #17191d;
+  background: linear-gradient(105deg, #17191d 0%, #202329 65%, #17191d 100%);
   border-bottom: 4px solid #bd1f2a;
 }
 
@@ -87,6 +88,7 @@ button {
   color: #d9dce2;
   border: 1px solid #40444c;
   border-radius: 999px;
+  background: rgba(255, 255, 255, 0.025);
 }
 
 .status-dot {
@@ -101,7 +103,7 @@ button {
   display: grid;
   grid-template-columns: minmax(250px, 340px) minmax(0, 1fr);
   gap: 1.25rem;
-  max-width: 1500px;
+  max-width: 1440px;
   min-height: calc(100vh - 88px);
   margin: 0 auto;
   padding: 1.25rem;
@@ -112,7 +114,7 @@ button {
   background: #fff;
   border: 1px solid #e0e2e6;
   border-radius: 18px;
-  box-shadow: 0 12px 32px rgba(17, 23, 31, 0.06);
+  box-shadow: 0 14px 38px rgba(17, 23, 31, 0.07);
 }
 
 .document-panel {
@@ -122,6 +124,25 @@ button {
   max-height: calc(100vh - 114px);
   padding: 1.25rem;
   overflow: auto;
+  position: sticky;
+  top: 1.25rem;
+}
+
+.document-panel__title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.document-panel__title > span {
+  flex: 0 0 auto;
+  padding: 0.3rem 0.55rem;
+  color: #656b75;
+  background: #f1f2f4;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 700;
 }
 
 .document-panel__intro p,
@@ -147,6 +168,13 @@ button {
   border: 1px solid #e2e4e8;
   border-radius: 14px;
   background: #fafafa;
+  transition: border-color 160ms ease, transform 160ms ease, box-shadow 160ms ease;
+}
+
+.document-card:hover {
+  border-color: #d5b4b8;
+  box-shadow: 0 8px 22px rgba(22, 25, 30, 0.06);
+  transform: translateY(-1px);
 }
 
 .document-card__type,
@@ -190,7 +218,8 @@ button {
 .chat-panel {
   display: grid;
   grid-template-rows: auto minmax(300px, 1fr) auto;
-  min-height: calc(100vh - 114px);
+  height: calc(100vh - 114px);
+  min-height: 620px;
   overflow: hidden;
 }
 
@@ -203,20 +232,27 @@ button {
 }
 
 .text-button {
-  padding: 0.35rem 0;
+  padding: 0.45rem 0.7rem;
   color: #5f6570;
   background: none;
   border: 0;
   font-size: 0.82rem;
+  border-radius: 8px;
 }
 
 .text-button:hover {
   color: #bd1f2a;
+  background: #fbf1f2;
 }
 
 .chat-window {
   padding: 1.4rem;
   overflow-y: auto;
+  background:
+    linear-gradient(rgba(255, 255, 255, 0.72), rgba(255, 255, 255, 0.72)),
+    radial-gradient(circle at 50% 0%, rgba(189, 31, 42, 0.035), transparent 24rem);
+  scrollbar-color: #c9ccd1 transparent;
+  scrollbar-width: thin;
 }
 
 .message {
@@ -248,6 +284,7 @@ button {
   border: 1px solid #e6e8eb;
   border-radius: 6px 16px 16px 16px;
   line-height: 1.58;
+  box-shadow: 0 3px 10px rgba(20, 24, 30, 0.035);
 }
 
 .message--user .message__bubble {
@@ -302,6 +339,9 @@ button {
 }
 
 .source-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
   padding: 0.5rem 0.7rem;
   color: #4f5560;
   background: #fafafa;
@@ -311,21 +351,52 @@ button {
   line-height: 1.35;
 }
 
+.source-name__icon {
+  display: grid;
+  width: 18px;
+  height: 18px;
+  place-items: center;
+  flex: 0 0 auto;
+  color: #8e1821;
+  background: #f8e7e9;
+  border-radius: 50%;
+  font-size: 0.66rem;
+  font-weight: 800;
+}
+
 .question-area {
   padding: 1rem 1.4rem 1.25rem;
   border-top: 1px solid #eceef1;
-  background: #fff;
+  background: rgba(255, 255, 255, 0.97);
+  box-shadow: 0 -10px 28px rgba(25, 29, 35, 0.035);
+}
+
+.suggestion-area {
+  margin-bottom: 0.8rem;
+}
+
+.suggestion-label {
+  display: block;
+  margin-bottom: 0.45rem;
+  color: #737984;
+  font-size: 0.7rem;
+  font-weight: 750;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
 }
 
 .sample-questions {
   display: flex;
   gap: 0.5rem;
-  margin-bottom: 0.75rem;
   overflow-x: auto;
   padding-bottom: 0.1rem;
 }
 
 .sample-questions button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.65rem;
   flex: 0 0 auto;
   max-width: 310px;
   padding: 0.55rem 0.7rem;
@@ -335,10 +406,13 @@ button {
   border: 1px solid #dfe2e6;
   border-radius: 10px;
   font-size: 0.76rem;
+  transition: color 150ms ease, border-color 150ms ease, background 150ms ease;
 }
 
 .sample-questions button:hover {
   border-color: #bd1f2a;
+  color: #8e1821;
+  background: #fff7f8;
 }
 
 .question-form {
@@ -355,7 +429,7 @@ button {
   resize: vertical;
   padding: 0.8rem 0.9rem;
   color: #202329;
-  background: #fafafa;
+  background: #fff;
   border: 1px solid #d7dae0;
   border-radius: 12px;
   outline: none;
@@ -368,6 +442,10 @@ button {
 }
 
 .question-form button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.55rem;
   min-height: 48px;
   padding: 0 1rem;
   color: #fff;
@@ -375,6 +453,14 @@ button {
   border: 0;
   border-radius: 10px;
   font-weight: 750;
+  box-shadow: 0 7px 18px rgba(189, 31, 42, 0.2);
+  transition: background 150ms ease, transform 150ms ease, box-shadow 150ms ease;
+}
+
+.question-form button:not(:disabled):hover {
+  background: #a81923;
+  box-shadow: 0 9px 22px rgba(189, 31, 42, 0.25);
+  transform: translateY(-1px);
 }
 
 .question-form button:disabled {
@@ -385,6 +471,20 @@ button {
 .form-note {
   margin: 0.45rem 0 0;
   font-size: 0.7rem;
+}
+
+.form-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.keyboard-hint {
+  flex: 0 0 auto;
+  margin-top: 0.45rem;
+  color: #90959e;
+  font-size: 0.67rem;
 }
 
 .error-banner {
@@ -416,6 +516,7 @@ button {
 
   .document-panel {
     max-height: none;
+    position: static;
   }
 
   .document-list {
@@ -423,6 +524,7 @@ button {
   }
 
   .chat-panel {
+    height: auto;
     min-height: 760px;
   }
 }
@@ -455,5 +557,15 @@ button {
 
   .question-form button {
     width: 100%;
+  }
+
+  .form-meta {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 0;
+  }
+
+  .keyboard-hint {
+    display: none;
   }
 }

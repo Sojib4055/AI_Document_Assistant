@@ -5,7 +5,10 @@ export function DocumentPanel({ documents }: { documents: DocumentSummary[] }) {
     <aside className="document-panel">
       <div className="document-panel__intro">
         <span className="eyebrow">Knowledge base</span>
-        <h2>Document scope</h2>
+        <div className="document-panel__title">
+          <h2>Document scope</h2>
+          <span>{documents.length} sources</span>
+        </div>
         <p>Answers are restricted to the supplied employee handbook and selected Labour Act handbook pages.</p>
       </div>
       <div className="document-list">
