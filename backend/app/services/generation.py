@@ -16,7 +16,8 @@ from .tokenizer import tokenize
 
 
 REFUSAL_TEXT = (
-    "I don't have sufficient information in the provided documents to answer this question."
+    "I couldn't find information about that in the provided documents. "
+    "Please ask a question related to the available employee policy documents."
 )
 
 

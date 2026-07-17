@@ -48,7 +48,16 @@ def test_out_of_scope_question_is_refused(tmp_path: Path) -> None:
 
     assert response.answerable is False
     assert response.sources == []
-    assert "sufficient information" in response.answer
+    assert "couldn't find information" in response.answer
+
+
+def test_simple_greeting_gets_friendly_reply(tmp_path: Path) -> None:
+    service = make_service(tmp_path)
+    response = service.query("Hi", "test-request")
+
+    assert response.answerable is True
+    assert response.answer.startswith("Hello!")
+    assert response.sources == []
 
 
 def test_generic_sick_leave_question_prefers_company_policy(tmp_path: Path) -> None:

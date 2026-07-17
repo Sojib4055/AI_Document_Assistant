@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from collections import defaultdict
 
 from app.config import Settings
@@ -129,9 +130,37 @@ class RagService:
             request_id=request_id,
         )
 
+    @staticmethod
+    def _conversational_reply(question: str) -> str | None:
+        """Handle simple social messages without sending them through document RAG."""
+        normalized = re.sub(r"[^a-z\s']", " ", question.lower())
+        normalized = re.sub(r"\s+", " ", normalized).strip()
+
+        if re.fullmatch(r"(thank you|thanks|thank you very much|thanks a lot)", normalized):
+            return "You're welcome! Feel free to ask me anything about the available employee policy documents."
+        if re.fullmatch(r"(bye|goodbye|see you|see you later|take care)", normalized):
+            return "Goodbye! Feel free to return whenever you have a policy question."
+        if re.fullmatch(r"(how are you|how are you doing|how's it going)", normalized):
+            return "I'm doing well, thank you! How can I help you with the employee policy documents today?"
+        if re.fullmatch(
+            r"((hi|hello|hey|hiya|greetings|good morning|good afternoon|good evening)( there)?)+",
+            normalized,
+        ):
+            return "Hello! How can I help you with the employee policy documents today?"
+        return None
+
     def query(self, question: str, request_id: str) -> QueryResponse:
         if not self.ready or not self.retriever or not self.generator:
             raise RuntimeError("The document index is not ready.")
+
+        conversational_reply = self._conversational_reply(question)
+        if conversational_reply:
+            return QueryResponse(
+                answerable=True,
+                answer=conversational_reply,
+                sources=[],
+                request_id=request_id,
+            )
 
         evidence = self.retriever.search(question)
         if not evidence:

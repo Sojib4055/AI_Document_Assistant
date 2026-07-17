@@ -6,8 +6,21 @@ async function readJson<T>(response: Response): Promise<T> {
   if (!response.ok) {
     let detail = `Request failed with status ${response.status}`
     try {
-      const payload = await response.json() as { detail?: string }
-      detail = payload.detail ?? detail
+      const payload = await response.json() as { detail?: unknown }
+      if (typeof payload.detail === 'string') {
+        detail = payload.detail
+      } else if (Array.isArray(payload.detail)) {
+        const messages = payload.detail
+          .map((item) => {
+            if (typeof item === 'string') return item
+            if (item && typeof item === 'object' && 'msg' in item) {
+              return String((item as { msg: unknown }).msg)
+            }
+            return ''
+          })
+          .filter(Boolean)
+        if (messages.length) detail = messages.join(' ')
+      }
     } catch {
       // Keep the status-based message when the body is not JSON.
     }

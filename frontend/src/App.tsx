@@ -174,11 +174,11 @@ function App() {
                   }
                 }}
               />
-              <button type="submit" disabled={loading || question.trim().length < 3}>
+              <button type="submit" disabled={loading || question.trim().length < 1}>
                 Ask question
               </button>
             </form>
-            <p className="form-note">The assistant refuses questions that are not supported by the indexed documents.</p>
+            <p className="form-note">Say hello or ask about the available employee policy documents.</p>
           </div>
         </section>
       </main>

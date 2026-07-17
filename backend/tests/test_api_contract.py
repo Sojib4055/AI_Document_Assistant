@@ -49,8 +49,8 @@ def test_query_contract() -> None:
     assert "request_id" in payload
 
 
-def test_short_question_is_rejected() -> None:
+def test_short_question_is_accepted_by_validation() -> None:
     with make_client() as client:
         response = client.post("/api/v1/query", json={"question": "x"})
 
-    assert response.status_code == 422
+    assert response.status_code == 200
